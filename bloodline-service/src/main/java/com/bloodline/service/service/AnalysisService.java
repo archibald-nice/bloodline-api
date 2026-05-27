@@ -4,15 +4,19 @@ import com.bloodline.analyzer.model.ParsedRelation;
 import com.bloodline.analyzer.parser.JavaSourceParser;
 import com.bloodline.domain.entity.LineageEdge;
 import com.bloodline.domain.mapper.LineageEdgeMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class AnalysisService {
+    private static final Logger logger = LoggerFactory.getLogger(AnalysisService.class);
     private final LineageEdgeMapper lineageEdgeMapper;
     private final JavaSourceParser parser;
 
@@ -31,6 +35,24 @@ public class AnalysisService {
     public void analyzeMyBatisXml(String tenantId, String appId, String branch, String projectId, String xmlContent) {
         List<ParsedRelation> relations = parser.parseMyBatisXml(xmlContent);
         saveRelations(tenantId, appId, branch, projectId, relations);
+    }
+
+    @Transactional
+    public void analyzeSourceFiles(String tenantId, String appId, String branch, String projectId,
+                                   List<GitHubCodeFetchService.SourceFile> files) {
+        List<ParsedRelation> allRelations = new ArrayList<>();
+        for (GitHubCodeFetchService.SourceFile file : files) {
+            try {
+                if (file.getRelativePath().endsWith(".java")) {
+                    allRelations.addAll(parser.parseJavaFile(file.getContent()));
+                } else if (file.getRelativePath().endsWith(".xml")) {
+                    allRelations.addAll(parser.parseMyBatisXml(file.getContent()));
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to parse file: {}", file.getRelativePath(), e);
+            }
+        }
+        saveRelations(tenantId, appId, branch, projectId, allRelations);
     }
 
     private void saveRelations(String tenantId, String appId, String branch, String projectId, List<ParsedRelation> relations) {

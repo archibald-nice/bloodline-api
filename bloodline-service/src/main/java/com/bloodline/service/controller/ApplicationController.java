@@ -32,4 +32,15 @@ public class ApplicationController {
     public ResponseEntity<List<Application>> list() {
         return ResponseEntity.ok(applicationService.listByTenant("dept_01"));
     }
+
+    @PutMapping("/{appId}")
+    public ResponseEntity<Application> update(@PathVariable String appId, @RequestBody Application app) {
+        return ResponseEntity.ok(applicationService.update("dept_01", appId, app));
+    }
+
+    @DeleteMapping("/{appId}")
+    public ResponseEntity<Void> delete(@PathVariable String appId) {
+        applicationService.delete("dept_01", appId);
+        return ResponseEntity.ok().build();
+    }
 }

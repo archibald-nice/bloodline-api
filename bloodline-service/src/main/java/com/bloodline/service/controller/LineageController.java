@@ -17,7 +17,14 @@ public class LineageController {
     }
 
     @GetMapping("/apps/{appId}/upstream")
-    public ResponseEntity<List<LineageEdge>> getUpstream(@PathVariable String appId) {
+    public ResponseEntity<List<LineageEdge>> getUpstream(
+            @PathVariable String appId,
+            @RequestParam(required = false) String branch,
+            @RequestParam(required = false) String projectBranch,
+            @RequestParam(required = false) String projectId) {
+        if (branch != null && projectBranch != null && projectId != null) {
+            return ResponseEntity.ok(lineageQueryService.getUpstreamWithOverlay("dept_01", appId, branch, projectBranch, projectId));
+        }
         return ResponseEntity.ok(lineageQueryService.getUpstream("dept_01", appId));
     }
 
@@ -27,8 +34,29 @@ public class LineageController {
     }
 
     @GetMapping("/apps/{appId}/graph")
-    public ResponseEntity<LineageQueryService.LineageGraph> getGraph(@PathVariable String appId) {
+    public ResponseEntity<LineageQueryService.LineageGraph> getGraph(
+            @PathVariable String appId,
+            @RequestParam(required = false) String branch,
+            @RequestParam(required = false) String projectBranch,
+            @RequestParam(required = false) String projectId) {
+        if (branch != null && projectBranch != null && projectId != null) {
+            return ResponseEntity.ok(lineageQueryService.getLineageGraphWithOverlay("dept_01", appId, branch, projectBranch, projectId));
+        }
         return ResponseEntity.ok(lineageQueryService.getLineageGraph("dept_01", appId));
+    }
+
+    @GetMapping("/apps/{appId}/upstream/recursive")
+    public ResponseEntity<List<LineageEdge>> getUpstreamRecursive(
+            @PathVariable String appId,
+            @RequestParam(defaultValue = "5") int maxDepth) {
+        return ResponseEntity.ok(lineageQueryService.getUpstreamRecursive("dept_01", appId, maxDepth));
+    }
+
+    @GetMapping("/apps/{appId}/downstream/recursive")
+    public ResponseEntity<List<String>> getDownstreamRecursive(
+            @PathVariable String appId,
+            @RequestParam(defaultValue = "5") int maxDepth) {
+        return ResponseEntity.ok(lineageQueryService.getDownstreamRecursive("dept_01", appId, maxDepth));
     }
 
     @GetMapping("/tables/{tableName}/apps")

@@ -37,4 +37,50 @@ public interface LineageEdgeMapper {
     @Delete("DELETE FROM lineage_edge WHERE tenant_id = #{tenantId} AND app_id = #{appId} AND branch = #{branch} AND (project_id = #{projectId} OR (project_id IS NULL AND #{projectId} IS NULL))")
     int deleteByAppBranch(@Param("tenantId") String tenantId, @Param("appId") String appId,
                           @Param("branch") String branch, @Param("projectId") String projectId);
+
+    @Select("<script>" +
+            "WITH RECURSIVE upstream AS ( " +
+            "  SELECT * FROM lineage_edge WHERE tenant_id = #{tenantId} AND app_id = #{appId} " +
+            "  UNION ALL " +
+            "  SELECT e.* FROM lineage_edge e " +
+            "  INNER JOIN upstream u ON e.app_id = u.target_app_id " +
+            "  WHERE e.tenant_id = #{tenantId} " +
+            ") " +
+            "SELECT * FROM upstream LIMIT #{limit}" +
+            "</script>")
+    List<LineageEdge> findUpstreamRecursive(@Param("tenantId") String tenantId,
+                                            @Param("appId") String appId,
+                                            @Param("limit") int limit);
+
+    @Select("<script>" +
+            "WITH RECURSIVE downstream AS ( " +
+            "  SELECT app_id, target_app_id, relation_type, target_type, target_name FROM lineage_edge " +
+            "  WHERE tenant_id = #{tenantId} AND target_app_id = #{appId} " +
+            "  UNION ALL " +
+            "  SELECT e.app_id, e.target_app_id, e.relation_type, e.target_type, e.target_name " +
+            "  FROM lineage_edge e " +
+            "  INNER JOIN downstream d ON e.target_app_id = d.app_id " +
+            "  WHERE e.tenant_id = #{tenantId} " +
+            ") " +
+            "SELECT DISTINCT app_id FROM downstream LIMIT #{limit}" +
+            "</script>")
+    List<String> findDownstreamRecursive(@Param("tenantId") String tenantId,
+                                         @Param("appId") String appId,
+                                         @Param("limit") int limit);
+
+    @Select("<script>" +
+            "SELECT e.* FROM lineage_edge e " +
+            "WHERE e.tenant_id = #{tenantId} AND e.app_id = #{appId} " +
+            "AND ( " +
+            "  (e.branch = #{baselineBranch} AND e.project_id IS NULL) " +
+            "  OR " +
+            "  (e.branch = #{projectBranch} AND e.project_id = #{projectId}) " +
+            ") " +
+            "ORDER BY e.project_id IS NULL" +
+            "</script>")
+    List<LineageEdge> findByAppWithBranchOverlay(@Param("tenantId") String tenantId,
+                                                  @Param("appId") String appId,
+                                                  @Param("baselineBranch") String baselineBranch,
+                                                  @Param("projectBranch") String projectBranch,
+                                                  @Param("projectId") String projectId);
 }

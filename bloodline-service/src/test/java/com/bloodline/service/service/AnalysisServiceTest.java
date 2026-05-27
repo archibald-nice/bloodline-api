@@ -109,4 +109,30 @@ class AnalysisServiceTest {
         verify(lineageEdgeMapper, never()).deleteByAppBranch(anyString(), anyString(), anyString(), anyString());
         verify(lineageEdgeMapper, never()).batchInsert(any());
     }
+
+    @Test
+    void shouldAnalyzeMultipleSourceFiles() {
+        GitHubCodeFetchService.SourceFile javaFile = new GitHubCodeFetchService.SourceFile("OrderService.java", "java content");
+        GitHubCodeFetchService.SourceFile xmlFile = new GitHubCodeFetchService.SourceFile("OrderMapper.xml", "<mapper>...</mapper>");
+
+        ParsedRelation javaRel = new ParsedRelation("CALLS", "SERVICE", "UserService");
+        ParsedRelation xmlRel = new ParsedRelation("QUERIES", "TABLE", "order");
+        xmlRel.setTargetDetail("SELECT");
+
+        when(parser.parseJavaFile("java content")).thenReturn(Collections.singletonList(javaRel));
+        when(parser.parseMyBatisXml("<mapper>...</mapper>")).thenReturn(Collections.singletonList(xmlRel));
+
+        analysisService.analyzeSourceFiles("dept_01", "app1", "release_sit", "proj1", Arrays.asList(javaFile, xmlFile));
+
+        verify(lineageEdgeMapper).deleteByAppBranch("dept_01", "app1", "release_sit", "proj1");
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<LineageEdge>> captor = ArgumentCaptor.forClass(List.class);
+        verify(lineageEdgeMapper).batchInsert(captor.capture());
+
+        List<LineageEdge> edges = captor.getValue();
+        assertThat(edges).hasSize(2);
+        assertThat(edges).extracting(LineageEdge::getRelationType)
+                .containsExactlyInAnyOrder("CALLS", "QUERIES");
+    }
 }

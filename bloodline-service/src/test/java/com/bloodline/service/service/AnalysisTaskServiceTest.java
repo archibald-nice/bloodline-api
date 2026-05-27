@@ -1,7 +1,9 @@
 package com.bloodline.service.service;
 
 import com.bloodline.domain.entity.AnalysisTask;
+import com.bloodline.domain.entity.Application;
 import com.bloodline.domain.mapper.AnalysisTaskMapper;
+import com.bloodline.domain.mapper.ApplicationMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -9,12 +11,16 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.File;
+import java.util.Collections;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -28,6 +34,15 @@ class AnalysisTaskServiceTest {
 
     @Mock
     private AnalysisService analysisService;
+
+    @Mock
+    private DistributedLockService lockService;
+
+    @Mock
+    private ApplicationMapper applicationMapper;
+
+    @Mock
+    private GitHubCodeFetchService codeFetchService;
 
     @InjectMocks
     private AnalysisTaskService analysisTaskService;
@@ -56,7 +71,7 @@ class AnalysisTaskServiceTest {
     }
 
     @Test
-    void shouldExecuteTaskAndMarkCompleted() {
+    void shouldExecuteTaskAndMarkCompleted() throws Exception {
         AnalysisTask pendingTask = new AnalysisTask();
         pendingTask.setId(1L);
         pendingTask.setStatus(0);
@@ -65,11 +80,22 @@ class AnalysisTaskServiceTest {
         pendingTask.setBranch("release_sit");
         pendingTask.setProjectId(1L);
         when(analysisTaskMapper.findById(1L)).thenReturn(pendingTask);
+        when(lockService.tryLock(anyString(), anyString(), anyLong())).thenReturn(true);
+
+        Application app = new Application();
+        app.setAppId("app1");
+        app.setGitUrl("https://github.com/acme/app1.git");
+        when(applicationMapper.findByAppId("dept_01", "app1")).thenReturn(app);
+
+        File mockDir = new File("/tmp/repo");
+        doReturn(mockDir).when(codeFetchService).cloneRepository(anyString(), anyString(), any());
+        when(codeFetchService.ensembleSourceFiles(mockDir)).thenReturn(Collections.emptyList());
 
         analysisTaskService.executeTask(1L);
 
         verify(analysisTaskMapper).updateStatusAndStartedAt(1L, 1);
-        verify(analysisService).analyzeJavaSource(anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(analysisService).analyzeSourceFiles(anyString(), anyString(), anyString(), anyString(), any());
+        verify(codeFetchService).cleanup(mockDir);
 
         ArgumentCaptor<AnalysisTask> captor = ArgumentCaptor.forClass(AnalysisTask.class);
         verify(analysisTaskMapper).updateStatus(captor.capture());
@@ -80,7 +106,7 @@ class AnalysisTaskServiceTest {
     }
 
     @Test
-    void shouldMarkFailedWhenAnalysisThrowsException() {
+    void shouldMarkFailedWhenAnalysisThrowsException() throws Exception {
         AnalysisTask pendingTask = new AnalysisTask();
         pendingTask.setId(1L);
         pendingTask.setStatus(0);
@@ -89,9 +115,21 @@ class AnalysisTaskServiceTest {
         pendingTask.setBranch("release_sit");
         pendingTask.setProjectId(1L);
         when(analysisTaskMapper.findById(1L)).thenReturn(pendingTask);
-        doThrow(new RuntimeException("Parse error")).when(analysisService).analyzeJavaSource(anyString(), anyString(), anyString(), anyString(), anyString());
+        when(lockService.tryLock(anyString(), anyString(), anyLong())).thenReturn(true);
+
+        Application app = new Application();
+        app.setAppId("app1");
+        app.setGitUrl("https://github.com/acme/app1.git");
+        when(applicationMapper.findByAppId("dept_01", "app1")).thenReturn(app);
+
+        File mockDir = new File("/tmp/repo");
+        doReturn(mockDir).when(codeFetchService).cloneRepository(anyString(), anyString(), any());
+        when(codeFetchService.ensembleSourceFiles(mockDir)).thenReturn(Collections.emptyList());
+        doThrow(new RuntimeException("Parse error")).when(analysisService).analyzeSourceFiles(anyString(), anyString(), anyString(), anyString(), any());
 
         analysisTaskService.executeTask(1L);
+
+        verify(codeFetchService).cleanup(mockDir);
 
         ArgumentCaptor<AnalysisTask> captor = ArgumentCaptor.forClass(AnalysisTask.class);
         verify(analysisTaskMapper).updateStatus(captor.capture());
@@ -110,7 +148,32 @@ class AnalysisTaskServiceTest {
         analysisTaskService.executeTask(1L);
 
         verify(analysisTaskMapper, never()).updateStatusAndStartedAt(anyLong(), anyInt());
-        verify(analysisService, never()).analyzeJavaSource(anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(analysisService, never()).analyzeSourceFiles(anyString(), anyString(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void shouldMarkFailedWhenApplicationHasNoGitUrl() {
+        AnalysisTask pendingTask = new AnalysisTask();
+        pendingTask.setId(1L);
+        pendingTask.setStatus(0);
+        pendingTask.setTenantId("dept_01");
+        pendingTask.setAppId("app1");
+        pendingTask.setBranch("release_sit");
+        pendingTask.setProjectId(1L);
+        when(analysisTaskMapper.findById(1L)).thenReturn(pendingTask);
+        when(lockService.tryLock(anyString(), anyString(), anyLong())).thenReturn(true);
+
+        Application app = new Application();
+        app.setAppId("app1");
+        when(applicationMapper.findByAppId("dept_01", "app1")).thenReturn(app);
+
+        analysisTaskService.executeTask(1L);
+
+        ArgumentCaptor<AnalysisTask> captor = ArgumentCaptor.forClass(AnalysisTask.class);
+        verify(analysisTaskMapper).updateStatus(captor.capture());
+        AnalysisTask failedTask = captor.getValue();
+        assertThat(failedTask.getStatus()).isEqualTo(3);
+        assertThat(failedTask.getErrorMsg()).isEqualTo("Application has no git_url configured");
     }
 
     @Test

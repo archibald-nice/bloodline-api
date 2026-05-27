@@ -26,4 +26,15 @@ public class ApplicationService {
     public List<Application> listByTenant(String tenantId) {
         return applicationMapper.findByTenant(tenantId);
     }
+
+    public Application update(String tenantId, String appId, Application app) {
+        app.setTenantId(tenantId);
+        app.setAppId(appId);
+        applicationMapper.update(app);
+        return app;
+    }
+
+    public void delete(String tenantId, String appId) {
+        applicationMapper.deleteByAppId(tenantId, appId);
+    }
 }

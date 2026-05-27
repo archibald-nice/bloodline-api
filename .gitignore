@@ -3,7 +3,6 @@ target/
 *.class
 *.jar
 *.war
-*.ear
 
 # IDE
 .idea/
@@ -11,19 +10,6 @@ target/
 .vscode/
 *.ipr
 *.iws
-.classpath
-.project
-.settings/
 
 # OS
 .DS_Store
-Thumbs.db
-
-# Logs
-*.log
-logs/
-
-# Misc
-*.tmp
-*.swp
-*~

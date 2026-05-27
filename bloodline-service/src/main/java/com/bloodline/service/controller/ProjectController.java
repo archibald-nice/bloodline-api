@@ -1,6 +1,7 @@
 package com.bloodline.service.controller;
 
 import com.bloodline.domain.entity.Project;
+import com.bloodline.service.service.ProjectAppRelationService;
 import com.bloodline.service.service.ProjectService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,9 +12,11 @@ import java.util.List;
 @RequestMapping("/api/v1/projects")
 public class ProjectController {
     private final ProjectService projectService;
+    private final ProjectAppRelationService relationService;
 
-    public ProjectController(ProjectService projectService) {
+    public ProjectController(ProjectService projectService, ProjectAppRelationService relationService) {
         this.projectService = projectService;
+        this.relationService = relationService;
     }
 
     @PostMapping
@@ -32,5 +35,22 @@ public class ProjectController {
     @GetMapping
     public ResponseEntity<List<Project>> list() {
         return ResponseEntity.ok(projectService.listByTenant("dept_01"));
+    }
+
+    @PostMapping("/{projectId}/apps/{appId}")
+    public ResponseEntity<Void> bindApp(@PathVariable Long projectId, @PathVariable String appId) {
+        relationService.bindApp("dept_01", projectId, appId);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{projectId}/apps/{appId}")
+    public ResponseEntity<Void> unbindApp(@PathVariable Long projectId, @PathVariable String appId) {
+        relationService.unbindApp("dept_01", projectId, appId);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{projectId}/apps")
+    public ResponseEntity<List<String>> listApps(@PathVariable Long projectId) {
+        return ResponseEntity.ok(relationService.listAppIdsByProject("dept_01", projectId));
     }
 }

@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS analysis_task (
     branch VARCHAR(64) NOT NULL,
     commit_sha VARCHAR(64),
     trigger_type TINYINT COMMENT '1:webhook 2:manual 3:scheduled',
-    status TINYINT DEFAULT 0 COMMENT '0:pending 1:running 2:completed 3:failed 4:timeout',
+    status TINYINT DEFAULT 0 COMMENT '0:pending 1:running 2:completed 3:failed 4:timeout 5:stale',
     scheduler_job_id VARCHAR(64),
     result_summary TEXT,
     error_msg TEXT,
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS lineage_edge (
     branch VARCHAR(64) NOT NULL DEFAULT 'release_sit',
     project_id VARCHAR(32),
     confidence DECIMAL(3,2) DEFAULT 1.00,
-    source_type VARCHAR(16) DEFAULT 'AST' COMMENT 'AST/LLM/RUNTIME',
+    source_type VARCHAR(16) DEFAULT 'AST' COMMENT 'AST/RUNTIME',
     commit_sha VARCHAR(64),
     detected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_tenant_app (tenant_id, app_id),
@@ -65,4 +65,15 @@ CREATE TABLE IF NOT EXISTS lineage_edge (
     INDEX idx_tenant_branch (tenant_id, branch),
     INDEX idx_target_app (tenant_id, target_app_id),
     INDEX idx_project (project_id)
+);
+
+CREATE TABLE IF NOT EXISTS project_app (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    tenant_id VARCHAR(32) NOT NULL,
+    project_id BIGINT NOT NULL,
+    app_id VARCHAR(64) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_project_app (tenant_id, project_id, app_id),
+    INDEX idx_project (tenant_id, project_id),
+    INDEX idx_app (tenant_id, app_id)
 );

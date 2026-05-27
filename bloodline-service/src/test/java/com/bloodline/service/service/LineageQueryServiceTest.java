@@ -97,4 +97,50 @@ class LineageQueryServiceTest {
         assertThat(graph.getUpstream()).isEmpty();
         assertThat(graph.getDownstreamAppIds()).isEmpty();
     }
+
+    @Test
+    void shouldGetRecursiveUpstream() {
+        LineageEdge edge1 = new LineageEdge();
+        edge1.setAppId("app1");
+        edge1.setTargetAppId("app2");
+        LineageEdge edge2 = new LineageEdge();
+        edge2.setAppId("app2");
+        edge2.setTargetAppId("app3");
+        when(lineageEdgeMapper.findUpstreamRecursive("dept_01", "app1", 5))
+                .thenReturn(Arrays.asList(edge1, edge2));
+
+        List<LineageEdge> result = lineageQueryService.getUpstreamRecursive("dept_01", "app1", 5);
+
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(LineageEdge::getTargetAppId)
+                .containsExactly("app2", "app3");
+        verify(lineageEdgeMapper).findUpstreamRecursive("dept_01", "app1", 5);
+    }
+
+    @Test
+    void shouldGetRecursiveDownstream() {
+        when(lineageEdgeMapper.findDownstreamRecursive("dept_01", "app1", 5))
+                .thenReturn(Arrays.asList("app2", "app3"));
+
+        List<String> result = lineageQueryService.getDownstreamRecursive("dept_01", "app1", 5);
+
+        assertThat(result).hasSize(2);
+        assertThat(result).containsExactly("app2", "app3");
+        verify(lineageEdgeMapper).findDownstreamRecursive("dept_01", "app1", 5);
+    }
+
+    @Test
+    void shouldQueryWithBranchOverlay() {
+        LineageEdge edge = new LineageEdge();
+        edge.setAppId("app1");
+        edge.setTargetName("user-service");
+        when(lineageEdgeMapper.findByAppWithBranchOverlay("dept_01", "app1", "release_sit", "feature_x", "proj_123"))
+                .thenReturn(Collections.singletonList(edge));
+
+        List<LineageEdge> result = lineageQueryService.getUpstreamWithOverlay("dept_01", "app1", "release_sit", "feature_x", "proj_123");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getTargetName()).isEqualTo("user-service");
+        verify(lineageEdgeMapper).findByAppWithBranchOverlay("dept_01", "app1", "release_sit", "feature_x", "proj_123");
+    }
 }

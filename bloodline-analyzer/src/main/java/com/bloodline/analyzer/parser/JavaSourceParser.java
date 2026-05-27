@@ -12,6 +12,7 @@ public class JavaSourceParser {
     private final FeignParser feignParser = new FeignParser();
     private final RestControllerParser restParser = new RestControllerParser();
     private final MyBatisParser myBatisParser = new MyBatisParser();
+    private final JpaEntityParser jpaEntityParser = new JpaEntityParser();
 
     public List<ParsedRelation> parseJavaFile(String sourceCode) {
         List<ParsedRelation> all = new ArrayList<>();
@@ -19,6 +20,7 @@ public class JavaSourceParser {
         all.addAll(feignParser.parse(sourceCode));
         all.addAll(restParser.parse(sourceCode));
         all.addAll(myBatisParser.parseAnnotation(sourceCode));
+        all.addAll(jpaEntityParser.parse(sourceCode));
         return all;
     }
 

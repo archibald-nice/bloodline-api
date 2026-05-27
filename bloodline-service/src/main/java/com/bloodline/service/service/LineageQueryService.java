@@ -8,6 +8,8 @@ import java.util.List;
 
 @Service
 public class LineageQueryService {
+    private static final int DEFAULT_RECURSION_DEPTH = 5;
+
     private final LineageEdgeMapper lineageEdgeMapper;
 
     public LineageQueryService(LineageEdgeMapper lineageEdgeMapper) {
@@ -30,6 +32,31 @@ public class LineageQueryService {
         LineageGraph graph = new LineageGraph();
         graph.setAppId(appId);
         graph.setUpstream(getUpstream(tenantId, appId));
+        graph.setDownstreamAppIds(getDownstreamAppIds(tenantId, appId));
+        return graph;
+    }
+
+    public List<LineageEdge> getUpstreamRecursive(String tenantId, String appId, int maxDepth) {
+        return lineageEdgeMapper.findUpstreamRecursive(tenantId, appId, maxDepth);
+    }
+
+    public List<String> getDownstreamRecursive(String tenantId, String appId, int maxDepth) {
+        return lineageEdgeMapper.findDownstreamRecursive(tenantId, appId, maxDepth);
+    }
+
+    public List<LineageEdge> getUpstreamWithOverlay(String tenantId, String appId,
+                                                     String baselineBranch, String projectBranch,
+                                                     String projectId) {
+        return lineageEdgeMapper.findByAppWithBranchOverlay(
+                tenantId, appId, baselineBranch, projectBranch, projectId);
+    }
+
+    public LineageGraph getLineageGraphWithOverlay(String tenantId, String appId,
+                                                    String baselineBranch, String projectBranch,
+                                                    String projectId) {
+        LineageGraph graph = new LineageGraph();
+        graph.setAppId(appId);
+        graph.setUpstream(getUpstreamWithOverlay(tenantId, appId, baselineBranch, projectBranch, projectId));
         graph.setDownstreamAppIds(getDownstreamAppIds(tenantId, appId));
         return graph;
     }

@@ -61,6 +61,11 @@ public class AnalysisController {
         return ResponseEntity.ok(Collections.singletonMap("taskId", taskId));
     }
 
+    @GetMapping("/tasks")
+    public ResponseEntity<List<AnalysisTask>> listTasks(@RequestParam(defaultValue = "50") Integer limit) {
+        return ResponseEntity.ok(analysisTaskService.listTasks("dept_01", limit));
+    }
+
     @GetMapping("/tasks/{taskId}")
     public ResponseEntity<AnalysisTask> getTaskStatus(@PathVariable Long taskId) {
         AnalysisTask task = analysisTaskService.getTaskStatus(taskId);
