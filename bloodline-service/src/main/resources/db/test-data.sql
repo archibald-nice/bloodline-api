@@ -274,3 +274,20 @@ INSERT INTO lineage_edge (tenant_id, app_id, target_app_id, target_type, target_
 ('dept_01', 'admin-service', 'order-service', 'SERVICE', 'order-service', 'Dubbo @Reference OrderApi', 'CALLS', 'release_sit', 1.00),
 ('dept_01', 'admin-service', 'product-service', 'SERVICE', 'product-service', 'Dubbo @Reference ProductApi', 'CALLS', 'release_sit', 1.00),
 ('dept_01', 'admin-service', 'report-service', 'SERVICE', 'report-service', 'Dubbo @Reference ReportApi', 'CALLS', 'release_sit', 1.00);
+
+-- Field-level lineage sample data
+INSERT INTO lineage_column_ref (app_id, table_name, column_name, sql_signature, sql_preview, operation_type, operation_detail, source_location) VALUES
+('order-service', 'orders', 'order_id', 'f001', 'SELECT order_id, user_id, amount, status FROM orders', 'SELECT', 'READ', 'OrderMapper.java:15'),
+('order-service', 'orders', 'user_id', 'f001', 'SELECT order_id, user_id, amount, status FROM orders', 'SELECT', 'READ', 'OrderMapper.java:15'),
+('order-service', 'orders', 'amount', 'f001', 'SELECT order_id, user_id, amount, status FROM orders', 'SELECT', 'READ', 'OrderMapper.java:15'),
+('order-service', 'orders', 'status', 'f001', 'SELECT order_id, user_id, amount, status FROM orders', 'SELECT', 'READ', 'OrderMapper.java:15'),
+('order-service', 'orders', 'amount', 'f002', 'UPDATE orders SET status = ? WHERE amount > 100', 'UPDATE', 'WHERE', 'OrderMapper.java:32'),
+('order-service', 'orders', 'status', 'f003', 'INSERT INTO orders (order_id, user_id, amount, status) VALUES (?, ?, ?, ?)', 'INSERT', 'WRITE', 'OrderMapper.java:48'),
+('price-service', 'orders', 'amount', 'f001', 'SELECT order_id, user_id, amount, status FROM orders', 'SELECT', 'READ', 'PriceMapper.java:22'),
+('price-service', 'orders', 'discount_rate', 'f004', 'SELECT amount, discount_rate FROM orders WHERE status = 1', 'SELECT', 'READ', 'PriceMapper.java:38'),
+('price-service', 'orders', 'amount', 'f004', 'SELECT amount, discount_rate FROM orders WHERE status = 1', 'SELECT', 'READ', 'PriceMapper.java:38'),
+('price-service', 'orders', 'status', 'f004', 'SELECT amount, discount_rate FROM orders WHERE status = 1', 'SELECT', 'WHERE', 'PriceMapper.java:38'),
+('inventory-service', 'orders', 'status', 'f005', 'SELECT status, COUNT(*) FROM orders GROUP BY status', 'SELECT', 'READ', 'InventoryMapper.java:10'),
+('report-service', 'report', 'total_amount', 'f006', 'INSERT INTO report (user_id, total_amount) SELECT user_id, SUM(amount) FROM orders GROUP BY user_id', 'INSERT', 'WRITE', 'ReportMapper.java:55'),
+('report-service', 'orders', 'user_id', 'f006', 'INSERT INTO report (user_id, total_amount) SELECT user_id, SUM(amount) FROM orders GROUP BY user_id', 'SELECT', 'READ', 'ReportMapper.java:55'),
+('report-service', 'orders', 'amount', 'f006', 'INSERT INTO report (user_id, total_amount) SELECT user_id, SUM(amount) FROM orders GROUP BY user_id', 'SELECT', 'READ', 'ReportMapper.java:55');

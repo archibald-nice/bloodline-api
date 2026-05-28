@@ -4,6 +4,7 @@ import com.bloodline.analyzer.model.ParsedRelation;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -22,7 +23,9 @@ class MyBatisParserTest {
                 "    </select>\n" +
                 "</mapper>";
 
-        List<ParsedRelation> result = parser.parseXml(xml);
+        List<ParsedRelation> result = parser.parseXml(xml).stream()
+                .filter(r -> "TABLE".equals(r.getTargetType()))
+                .collect(Collectors.toList());
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getRelationType()).isEqualTo("QUERIES");
@@ -41,7 +44,9 @@ class MyBatisParserTest {
                 "    <delete id=\"delete\">DELETE FROM user WHERE id = 1</delete>\n" +
                 "</mapper>";
 
-        List<ParsedRelation> result = parser.parseXml(xml);
+        List<ParsedRelation> result = parser.parseXml(xml).stream()
+                .filter(r -> "TABLE".equals(r.getTargetType()))
+                .collect(Collectors.toList());
 
         assertThat(result).hasSize(4);
         assertThat(result).extracting(ParsedRelation::getTargetDetail)
@@ -59,7 +64,9 @@ class MyBatisParserTest {
                 "    User findById(Long id);\n" +
                 "}";
 
-        List<ParsedRelation> result = parser.parseAnnotation(source);
+        List<ParsedRelation> result = parser.parseAnnotation(source).stream()
+                .filter(r -> "TABLE".equals(r.getTargetType()))
+                .collect(Collectors.toList());
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getTargetName()).isEqualTo("user");
@@ -74,7 +81,9 @@ class MyBatisParserTest {
                 "    </select>\n" +
                 "</mapper>";
 
-        List<ParsedRelation> result = parser.parseXml(xml);
+        List<ParsedRelation> result = parser.parseXml(xml).stream()
+                .filter(r -> "TABLE".equals(r.getTargetType()))
+                .collect(Collectors.toList());
 
         assertThat(result).hasSize(2);
         assertThat(result).extracting(ParsedRelation::getTargetName)
@@ -90,7 +99,9 @@ class MyBatisParserTest {
                 "    </select>\n" +
                 "</mapper>";
 
-        List<ParsedRelation> result = parser.parseXml(xml);
+        List<ParsedRelation> result = parser.parseXml(xml).stream()
+                .filter(r -> "TABLE".equals(r.getTargetType()))
+                .collect(Collectors.toList());
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getTargetName()).isEqualTo("user");

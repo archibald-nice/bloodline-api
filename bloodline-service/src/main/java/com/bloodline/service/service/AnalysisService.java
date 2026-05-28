@@ -2,7 +2,9 @@ package com.bloodline.service.service;
 
 import com.bloodline.analyzer.model.ParsedRelation;
 import com.bloodline.analyzer.parser.JavaSourceParser;
+import com.bloodline.domain.entity.LineageColumnRef;
 import com.bloodline.domain.entity.LineageEdge;
+import com.bloodline.domain.mapper.LineageColumnRefMapper;
 import com.bloodline.domain.mapper.LineageEdgeMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,10 +20,12 @@ import java.util.stream.Collectors;
 public class AnalysisService {
     private static final Logger logger = LoggerFactory.getLogger(AnalysisService.class);
     private final LineageEdgeMapper lineageEdgeMapper;
+    private final LineageColumnRefMapper columnRefMapper;
     private final JavaSourceParser parser;
 
-    public AnalysisService(LineageEdgeMapper lineageEdgeMapper, JavaSourceParser parser) {
+    public AnalysisService(LineageEdgeMapper lineageEdgeMapper, LineageColumnRefMapper columnRefMapper, JavaSourceParser parser) {
         this.lineageEdgeMapper = lineageEdgeMapper;
+        this.columnRefMapper = columnRefMapper;
         this.parser = parser;
     }
 
@@ -58,24 +62,68 @@ public class AnalysisService {
     private void saveRelations(String tenantId, String appId, String branch, String projectId, List<ParsedRelation> relations) {
         if (relations.isEmpty()) return;
 
+        List<ParsedRelation> edgeRelations = new ArrayList<>();
+        List<ParsedRelation> columnRelations = new ArrayList<>();
+
+        for (ParsedRelation rel : relations) {
+            if ("COLUMN".equals(rel.getTargetType())) {
+                columnRelations.add(rel);
+            } else {
+                edgeRelations.add(rel);
+            }
+        }
+
+        // Save lineage edges (APP and TABLE types)
         lineageEdgeMapper.deleteByAppBranch(tenantId, appId, branch, projectId);
 
-        List<LineageEdge> edges = relations.stream().map(rel -> {
-            LineageEdge edge = new LineageEdge();
-            edge.setTenantId(tenantId);
-            edge.setAppId(appId);
-            edge.setTargetAppId(rel.getTargetAppId());
-            edge.setTargetType(rel.getTargetType());
-            edge.setTargetName(rel.getTargetName());
-            edge.setTargetDetail(rel.getTargetDetail());
-            edge.setRelationType(rel.getRelationType());
-            edge.setBranch(branch);
-            edge.setProjectId(projectId);
-            edge.setConfidence(BigDecimal.valueOf(rel.getConfidence()));
-            edge.setSourceType("AST");
-            return edge;
-        }).collect(Collectors.toList());
+        if (!edgeRelations.isEmpty()) {
+            List<LineageEdge> edges = edgeRelations.stream().map(rel -> {
+                LineageEdge edge = new LineageEdge();
+                edge.setTenantId(tenantId);
+                edge.setAppId(appId);
+                edge.setTargetAppId(rel.getTargetAppId());
+                edge.setTargetType(rel.getTargetType());
+                edge.setTargetName(rel.getTargetName());
+                edge.setTargetDetail(rel.getTargetDetail());
+                edge.setRelationType(rel.getRelationType());
+                edge.setBranch(branch);
+                edge.setProjectId(projectId);
+                edge.setConfidence(BigDecimal.valueOf(rel.getConfidence()));
+                edge.setSourceType("AST");
+                return edge;
+            }).collect(Collectors.toList());
 
-        lineageEdgeMapper.batchInsert(edges);
+            lineageEdgeMapper.batchInsert(edges);
+        }
+
+        // Save column refs (COLUMN type)
+        columnRefMapper.deleteByApp(appId);
+
+        if (!columnRelations.isEmpty()) {
+            List<LineageColumnRef> columnRefs = columnRelations.stream().map(rel -> {
+                LineageColumnRef ref = new LineageColumnRef();
+                ref.setAppId(appId);
+
+                String targetName = rel.getTargetName();
+                String tableName = null;
+                String columnName = targetName;
+                if (targetName != null && targetName.contains(".")) {
+                    int dotIndex = targetName.lastIndexOf('.');
+                    tableName = targetName.substring(0, dotIndex);
+                    columnName = targetName.substring(dotIndex + 1);
+                }
+
+                ref.setTableName(tableName);
+                ref.setColumnName(columnName);
+                ref.setSqlSignature(rel.getSqlSignature());
+                ref.setSqlPreview(rel.getSqlPreview());
+                ref.setOperationType(rel.getTargetAppId());
+                ref.setOperationDetail(rel.getTargetDetail());
+                ref.setSourceLocation(rel.getSourceLocation());
+                return ref;
+            }).collect(Collectors.toList());
+
+            columnRefMapper.batchInsert(columnRefs);
+        }
     }
 }

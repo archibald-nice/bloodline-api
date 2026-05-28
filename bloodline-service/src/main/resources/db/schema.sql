@@ -77,3 +77,19 @@ CREATE TABLE IF NOT EXISTS project_app (
     INDEX idx_project (tenant_id, project_id),
     INDEX idx_app (tenant_id, app_id)
 );
+
+CREATE TABLE IF NOT EXISTS lineage_column_ref (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    app_id VARCHAR(64) NOT NULL,
+    table_name VARCHAR(128) NOT NULL,
+    column_name VARCHAR(128) NOT NULL,
+    sql_signature VARCHAR(64) NOT NULL,
+    sql_preview VARCHAR(512),
+    operation_type VARCHAR(16) NOT NULL,
+    operation_detail VARCHAR(32),
+    source_location VARCHAR(256),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_app_table_col (app_id, table_name, column_name),
+    INDEX idx_sql_sig (sql_signature),
+    INDEX idx_table_col (table_name, column_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Field-level lineage reference records';

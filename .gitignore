@@ -13,3 +13,15 @@ target/
 
 # OS
 .DS_Store
+
+# Logs and temp
+*.log
+*.tmp
+*.bak
+hs_err_pid*
+*.hprof
+
+# Maven generated
+dependency-reduced-pom.xml
+.factorypath
+.apt_generated/

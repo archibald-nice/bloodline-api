@@ -7,6 +7,9 @@ public class ParsedRelation {
     private String targetDetail;
     private String targetAppId;
     private double confidence = 1.0;
+    private String sqlSignature;
+    private String sqlPreview;
+    private String sourceLocation;
 
     public ParsedRelation() {}
 
@@ -33,4 +36,13 @@ public class ParsedRelation {
 
     public double getConfidence() { return confidence; }
     public void setConfidence(double confidence) { this.confidence = confidence; }
+
+    public String getSqlSignature() { return sqlSignature; }
+    public void setSqlSignature(String sqlSignature) { this.sqlSignature = sqlSignature; }
+
+    public String getSqlPreview() { return sqlPreview; }
+    public void setSqlPreview(String sqlPreview) { this.sqlPreview = sqlPreview; }
+
+    public String getSourceLocation() { return sourceLocation; }
+    public void setSourceLocation(String sourceLocation) { this.sourceLocation = sourceLocation; }
 }

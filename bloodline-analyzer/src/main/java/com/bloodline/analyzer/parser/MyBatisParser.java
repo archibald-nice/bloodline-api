@@ -1,5 +1,6 @@
 package com.bloodline.analyzer.parser;
 
+import com.bloodline.analyzer.model.ParsedColumnRef;
 import com.bloodline.analyzer.model.ParsedRelation;
 import com.github.javaparser.JavaParser;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
@@ -20,6 +21,7 @@ import java.util.Set;
 
 public class MyBatisParser {
     private final JavaParser javaParser = new JavaParser();
+    private final ColumnRefExtractor columnExtractor = new ColumnRefExtractor();
 
     public List<ParsedRelation> parseXml(String xmlContent) {
         List<ParsedRelation> relations = new ArrayList<>();
@@ -37,8 +39,19 @@ public class MyBatisParser {
                 for (int i = 0; i < nodes.getLength(); i++) {
                     Element elem = (Element) nodes.item(i);
                     List<String> sqlTexts = extractSqlTexts(doc, elem);
+                    String sourceLocation = elem.getAttribute("id");
                     for (String sql : sqlTexts) {
                         relations.addAll(extractTablesFromSql(sql, tag.toUpperCase()));
+                        List<ParsedColumnRef> colRefs = columnExtractor.extract(sql, null, sourceLocation);
+                        for (ParsedColumnRef colRef : colRefs) {
+                            ParsedRelation rel = new ParsedRelation("QUERIES", "COLUMN", colRef.getTableName() + "." + colRef.getColumnName());
+                            rel.setTargetDetail(colRef.getOperationDetail());
+                            rel.setTargetAppId(colRef.getOperationType());
+                            rel.setSqlSignature(colRef.getSqlSignature());
+                            rel.setSqlPreview(colRef.getSqlPreview());
+                            rel.setSourceLocation(colRef.getSourceLocation());
+                            relations.add(rel);
+                        }
                     }
                 }
             }
@@ -113,6 +126,16 @@ public class MyBatisParser {
                         String sql = ann.asSingleMemberAnnotationExpr().getMemberValue().toString();
                         sql = sql.replace("\"", "").trim();
                         relations.addAll(extractTablesFromSql(sql, name.toUpperCase()));
+                        List<ParsedColumnRef> colRefs = columnExtractor.extract(sql, null, "annotation");
+                        for (ParsedColumnRef colRef : colRefs) {
+                            ParsedRelation rel = new ParsedRelation("QUERIES", "COLUMN", colRef.getTableName() + "." + colRef.getColumnName());
+                            rel.setTargetDetail(colRef.getOperationDetail());
+                            rel.setTargetAppId(colRef.getOperationType());
+                            rel.setSqlSignature(colRef.getSqlSignature());
+                            rel.setSqlPreview(colRef.getSqlPreview());
+                            rel.setSourceLocation(colRef.getSourceLocation());
+                            relations.add(rel);
+                        }
                     }
                 }
             });

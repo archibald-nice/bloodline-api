@@ -3,6 +3,7 @@ package com.bloodline.service.service;
 import com.bloodline.analyzer.model.ParsedRelation;
 import com.bloodline.analyzer.parser.JavaSourceParser;
 import com.bloodline.domain.entity.LineageEdge;
+import com.bloodline.domain.mapper.LineageColumnRefMapper;
 import com.bloodline.domain.mapper.LineageEdgeMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +28,9 @@ class AnalysisServiceTest {
 
     @Mock
     private LineageEdgeMapper lineageEdgeMapper;
+
+    @Mock
+    private LineageColumnRefMapper columnRefMapper;
 
     @Mock
     private JavaSourceParser parser;
