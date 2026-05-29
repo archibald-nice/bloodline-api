@@ -2,7 +2,6 @@ package com.bloodline.service.service;
 
 import com.bloodline.common.context.TenantContext;
 import com.bloodline.domain.entity.LineageSnapshot;
-import com.bloodline.domain.mapper.LineageEdgeV2Mapper;
 import com.bloodline.domain.mapper.LineageSnapshotMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,16 +11,21 @@ import java.util.List;
 @Service
 public class SnapshotService {
 
-    private final LineageEdgeV2Mapper edgeMapper;
     private final LineageSnapshotMapper snapshotMapper;
 
-    public SnapshotService(LineageEdgeV2Mapper edgeMapper, LineageSnapshotMapper snapshotMapper) {
-        this.edgeMapper = edgeMapper;
+    public SnapshotService(LineageSnapshotMapper snapshotMapper) {
         this.snapshotMapper = snapshotMapper;
     }
 
     @Transactional
     public LineageSnapshot createSnapshot(String snapshotName, String snapshotType, String refId) {
+        if (snapshotName == null || snapshotName.trim().isEmpty()) {
+            throw new IllegalArgumentException("snapshotName is required");
+        }
+        if (snapshotType == null || snapshotType.trim().isEmpty()) {
+            throw new IllegalArgumentException("snapshotType is required");
+        }
+
         Long tenantId = TenantContext.getCurrentTenant();
         if (tenantId == null) {
             throw new IllegalStateException("Tenant context not set.");
@@ -42,12 +46,23 @@ public class SnapshotService {
     }
 
     private int countActiveEdges(Long tenantId) {
-        // MVP simplified: no dedicated COUNT query yet
+        // TODO: implement actual count query when edge table is ready
         return 0;
     }
 
     public LineageSnapshot getSnapshot(Long snapshotId) {
-        return snapshotMapper.findById(snapshotId);
+        LineageSnapshot snapshot = snapshotMapper.findById(snapshotId);
+        if (snapshot == null) {
+            return null;
+        }
+        Long tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) {
+            throw new IllegalStateException("Tenant context not set.");
+        }
+        if (!tenantId.equals(snapshot.getTenantId())) {
+            throw new IllegalStateException("Snapshot does not belong to current tenant.");
+        }
+        return snapshot;
     }
 
     public List<LineageSnapshot> listSnapshots() {

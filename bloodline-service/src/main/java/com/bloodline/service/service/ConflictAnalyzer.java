@@ -16,6 +16,9 @@ public class ConflictAnalyzer {
     }
 
     public ConflictReport analyze(Long baseSnapshotId, Long compareSnapshotId) {
+        if (baseSnapshotId == null || compareSnapshotId == null) {
+            throw new IllegalArgumentException("Snapshot IDs are required");
+        }
         ConflictReport report = new ConflictReport();
         report.setConflicts(new ArrayList<>());
         report.setSummary(new ConflictSummary(0, 0, 0, 0));
