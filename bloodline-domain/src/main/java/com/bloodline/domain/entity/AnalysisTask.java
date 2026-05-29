@@ -16,6 +16,8 @@ public class AnalysisTask {
     private String errorMsg;
     private LocalDateTime startedAt;
     private LocalDateTime completedAt;
+    private String lineageType;
+    private Long snapshotId;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -55,4 +57,9 @@ public class AnalysisTask {
 
     public LocalDateTime getCompletedAt() { return completedAt; }
     public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
+
+    public String getLineageType() { return lineageType; }
+    public void setLineageType(String lineageType) { this.lineageType = lineageType; }
+    public Long getSnapshotId() { return snapshotId; }
+    public void setSnapshotId(Long snapshotId) { this.snapshotId = snapshotId; }
 }
