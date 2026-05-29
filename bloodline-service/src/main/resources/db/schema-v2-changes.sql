@@ -13,8 +13,8 @@ CREATE TABLE IF NOT EXISTS tenant (
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='租户表';
 
--- Insert default tenant
-INSERT INTO tenant (tenant_code, tenant_name, status) VALUES ('dept_01', 'Default Department', 1);
+-- Insert default tenant (idempotent)
+INSERT IGNORE INTO tenant (tenant_code, tenant_name, status) VALUES ('dept_01', 'Default Department', 1);
 
 -- 2. lineage_node table
 CREATE TABLE IF NOT EXISTS lineage_node (
