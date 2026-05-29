@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bloodline.domain.mapper.LineageSnapshotMapper">
+
+    <resultMap id="snapshotMap" type="com.bloodline.domain.entity.LineageSnapshot">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="snapshotName" column="snapshot_name"/>
+        <result property="snapshotType" column="snapshot_type"/>
+        <result property="refId" column="ref_id"/>
+        <result property="edgeCount" column="edge_count"/>
+        <result property="nodeCount" column="node_count"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="createdBy" column="created_by"/>
+    </resultMap>
+
+    <select id="findById" resultMap="snapshotMap">
+        SELECT * FROM lineage_snapshot WHERE id = #{id}
+    </select>
+
+    <select id="findByTenant" resultMap="snapshotMap">
+        SELECT * FROM lineage_snapshot WHERE tenant_id = #{tenantId} ORDER BY created_at DESC
+    </select>
+
+    <select id="findByType" resultMap="snapshotMap">
+        SELECT * FROM lineage_snapshot
+        WHERE tenant_id = #{tenantId} AND snapshot_type = #{snapshotType}
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO lineage_snapshot (tenant_id, snapshot_name, snapshot_type, ref_id, edge_count, node_count, created_by)
+        VALUES (#{tenantId}, #{snapshotName}, #{snapshotType}, #{refId}, #{edgeCount}, #{nodeCount}, #{createdBy})
+    </insert>
+
+    <update id="updateCounts">
+        UPDATE lineage_snapshot SET edge_count = #{edgeCount}, node_count = #{nodeCount} WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM lineage_snapshot WHERE id = #{id}
+    </delete>
+</mapper>

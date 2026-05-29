@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bloodline.domain.mapper.TenantMapper">
+
+    <resultMap id="tenantMap" type="com.bloodline.domain.entity.Tenant">
+        <id property="id" column="id"/>
+        <result property="tenantCode" column="tenant_code"/>
+        <result property="tenantName" column="tenant_name"/>
+        <result property="status" column="status"/>
+        <result property="config" column="config"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findById" resultMap="tenantMap">
+        SELECT * FROM tenant WHERE id = #{id}
+    </select>
+
+    <select id="findByCode" resultMap="tenantMap">
+        SELECT * FROM tenant WHERE tenant_code = #{tenantCode}
+    </select>
+
+    <select id="findAll" resultMap="tenantMap">
+        SELECT * FROM tenant ORDER BY id
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tenant (tenant_code, tenant_name, status, config)
+        VALUES (#{tenantCode}, #{tenantName}, #{status}, #{config})
+    </insert>
+
+    <update id="update">
+        UPDATE tenant
+        SET tenant_name = #{tenantName}, status = #{status}, config = #{config}
+        WHERE id = #{id}
+    </update>
+</mapper>
