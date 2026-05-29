@@ -48,4 +48,13 @@ public interface LineageColumnRefMapper {
 
     @Select("SELECT DISTINCT column_name FROM lineage_column_ref WHERE table_name = #{tableName} ORDER BY column_name")
     List<String> findColumnsByTable(@Param("tableName") String tableName);
+
+    @Select("SELECT DISTINCT table_name FROM lineage_column_ref WHERE schema_id = #{schemaId} ORDER BY table_name")
+    List<String> findTablesBySchema(@Param("schemaId") Long schemaId);
+
+    @Select("SELECT DISTINCT column_name FROM lineage_column_ref WHERE schema_id = #{schemaId} AND table_name = #{tableName} ORDER BY column_name")
+    List<String> findColumnsBySchemaAndTable(@Param("schemaId") Long schemaId, @Param("tableName") String tableName);
+
+    @Select("SELECT DISTINCT app_id FROM lineage_column_ref WHERE schema_id = #{schemaId} AND table_name = #{tableName} AND column_name = #{columnName}")
+    List<String> findAppsBySchemaColumn(@Param("schemaId") Long schemaId, @Param("tableName") String tableName, @Param("columnName") String columnName);
 }
