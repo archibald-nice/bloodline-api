@@ -93,3 +93,67 @@ CREATE TABLE IF NOT EXISTS lineage_column_ref (
     INDEX idx_sql_sig (sql_signature),
     INDEX idx_table_col (table_name, column_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Field-level lineage reference records';
+
+-- ============================================================
+-- Schema & Index Layer (added 2026-05-29)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS datasource (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    tenant_id VARCHAR(32) NOT NULL,
+    app_id VARCHAR(64) NOT NULL,
+    datasource_code VARCHAR(64) NOT NULL COMMENT 'Unique code within app',
+    datasource_name VARCHAR(128),
+    db_type VARCHAR(32) NOT NULL COMMENT 'mysql|oracle|postgresql|hive|clickhouse|tidb',
+    db_version VARCHAR(32),
+    jdbc_url VARCHAR(512),
+    catalog VARCHAR(128) COMMENT 'For PostgreSQL/Greenplum',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_tenant_app_code (tenant_id, app_id, datasource_code),
+    INDEX idx_app (tenant_id, app_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS datasource_schema (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    tenant_id VARCHAR(32) NOT NULL,
+    datasource_id BIGINT NOT NULL,
+    schema_name VARCHAR(128) NOT NULL COMMENT 'MySQL:database_name, Oracle:user_name',
+    schema_alias VARCHAR(128),
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_datasource_schema (datasource_id, schema_name),
+    INDEX idx_datasource (datasource_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS lineage_index (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    tenant_id VARCHAR(32) NOT NULL,
+    schema_id BIGINT NOT NULL,
+    table_name VARCHAR(128) NOT NULL,
+    index_name VARCHAR(128) NOT NULL,
+    index_type VARCHAR(32) COMMENT 'BTREE|HASH|GIN|GIST|FULLTEXT|BITMAP|PRIMARY',
+    is_unique BOOLEAN DEFAULT FALSE,
+    is_primary BOOLEAN DEFAULT FALSE,
+    index_columns VARCHAR(512) COMMENT 'Comma-separated for display',
+    definition TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_schema_table_idx (schema_id, table_name, index_name),
+    INDEX idx_schema_table (schema_id, table_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS lineage_index_column (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    index_id BIGINT NOT NULL,
+    column_name VARCHAR(128) NOT NULL,
+    column_order INT DEFAULT 1,
+    is_descending BOOLEAN DEFAULT FALSE,
+    UNIQUE KEY uk_idx_col (index_id, column_name),
+    INDEX idx_column (index_id, column_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Add schema_id to lineage_column_ref (nullable for migration)
+ALTER TABLE lineage_column_ref
+    ADD COLUMN schema_id BIGINT AFTER app_id,
+    ADD INDEX idx_schema_table_col (schema_id, table_name, column_name);
