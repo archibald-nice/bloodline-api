@@ -1,7 +1,10 @@
 package com.bloodline.service.service;
 
 import com.bloodline.domain.entity.LineageColumnRef;
+import com.bloodline.domain.entity.LineageIndex;
 import com.bloodline.domain.mapper.LineageColumnRefMapper;
+import com.bloodline.domain.mapper.LineageIndexColumnMapper;
+import com.bloodline.domain.mapper.LineageIndexMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -17,9 +20,20 @@ import java.util.stream.Collectors;
 public class ImpactAnalysisService {
 
     private final LineageColumnRefMapper columnRefMapper;
+    private final LineageIndexMapper lineageIndexMapper;
+    private final LineageIndexColumnMapper lineageIndexColumnMapper;
 
-    public ImpactAnalysisService(LineageColumnRefMapper columnRefMapper) {
+    public ImpactAnalysisService(LineageColumnRefMapper columnRefMapper,
+                                 LineageIndexMapper lineageIndexMapper,
+                                 LineageIndexColumnMapper lineageIndexColumnMapper) {
         this.columnRefMapper = columnRefMapper;
+        this.lineageIndexMapper = lineageIndexMapper;
+        this.lineageIndexColumnMapper = lineageIndexColumnMapper;
+    }
+
+    public List<LineageIndex> findAffectedIndexes(String tableName, String columnName) {
+        // Placeholder: full integration requires schema_id resolution from the request
+        return Collections.emptyList();
     }
 
     public ImpactReport analyze(ImpactRequest request) {
@@ -331,6 +345,7 @@ public class ImpactAnalysisService {
         private String columnName;
         private String relation;
         private List<String> sqlSignatures;
+        private List<LineageIndex> affectedIndexes;
 
         public String getTableName() {
             return tableName;
@@ -362,6 +377,14 @@ public class ImpactAnalysisService {
 
         public void setSqlSignatures(List<String> sqlSignatures) {
             this.sqlSignatures = sqlSignatures;
+        }
+
+        public List<LineageIndex> getAffectedIndexes() {
+            return affectedIndexes;
+        }
+
+        public void setAffectedIndexes(List<LineageIndex> affectedIndexes) {
+            this.affectedIndexes = affectedIndexes;
         }
     }
 
