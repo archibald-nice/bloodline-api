@@ -14,7 +14,7 @@ public interface DatasourceMapper {
     int insert(Datasource ds);
 
     @Select("SELECT * FROM datasource WHERE tenant_id = #{tenantId} AND app_id = #{appId}")
-    List<Datasource> findByApp(@Param("tenantId") String tenantId, @Param("appId") String appId);
+    List<Datasource> findByTenantAndApp(@Param("tenantId") String tenantId, @Param("appId") String appId);
 
     @Select("SELECT * FROM datasource WHERE id = #{id}")
     Datasource findById(@Param("id") Long id);
