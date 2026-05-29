@@ -1,5 +1,6 @@
 package com.bloodline.service.controller;
 
+import com.bloodline.common.context.TenantContext;
 import com.bloodline.service.service.ConflictAnalyzer;
 import com.bloodline.service.service.ConflictAnalyzer.ConflictReport;
 import org.springframework.http.ResponseEntity;
@@ -20,10 +21,15 @@ public class ConflictController {
     @PostMapping("/analyze")
     public ResponseEntity<ConflictReport> analyze(
             @RequestBody Map<String, Long> request) {
+        Long tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) {
+            throw new IllegalStateException("Tenant context not set.");
+        }
+
         Long baseId = request.get("baseSnapshotId");
         Long compareId = request.get("compareSnapshotId");
 
-        if (baseId == null || compareId == null) {
+        if (baseId == null || compareId == null || baseId <= 0 || compareId <= 0) {
             return ResponseEntity.badRequest().build();
         }
 

@@ -24,10 +24,8 @@ public class LineageV2Controller {
     public ResponseEntity<List<LineageEdgeV2>> getUpstream(
             @PathVariable String nodeId,
             @RequestParam(defaultValue = "3") int maxDepth) {
-        Long tenantId = TenantContext.getCurrentTenant();
-        if (tenantId == null) {
-            throw new IllegalStateException("Tenant context not set.");
-        }
+        Long tenantId = requireTenant();
+        maxDepth = capMaxDepth(maxDepth);
         return ResponseEntity.ok(edgeMapper.findUpstreamRecursive(tenantId, nodeId, maxDepth));
     }
 
@@ -35,10 +33,8 @@ public class LineageV2Controller {
     public ResponseEntity<List<LineageEdgeV2>> getDownstream(
             @PathVariable String nodeId,
             @RequestParam(defaultValue = "3") int maxDepth) {
-        Long tenantId = TenantContext.getCurrentTenant();
-        if (tenantId == null) {
-            throw new IllegalStateException("Tenant context not set.");
-        }
+        Long tenantId = requireTenant();
+        maxDepth = capMaxDepth(maxDepth);
         return ResponseEntity.ok(edgeMapper.findDownstreamRecursive(tenantId, nodeId, maxDepth));
     }
 
@@ -46,10 +42,8 @@ public class LineageV2Controller {
     public ResponseEntity<Map<String, Object>> getGraph(
             @RequestParam String nodeId,
             @RequestParam(defaultValue = "3") int maxDepth) {
-        Long tenantId = TenantContext.getCurrentTenant();
-        if (tenantId == null) {
-            throw new IllegalStateException("Tenant context not set.");
-        }
+        Long tenantId = requireTenant();
+        maxDepth = capMaxDepth(maxDepth);
         List<LineageEdgeV2> upstream = edgeMapper.findUpstreamRecursive(tenantId, nodeId, maxDepth);
         List<LineageEdgeV2> downstream = edgeMapper.findDownstreamRecursive(tenantId, nodeId, maxDepth);
 
@@ -58,5 +52,19 @@ public class LineageV2Controller {
         result.put("upstream", upstream);
         result.put("downstream", downstream);
         return ResponseEntity.ok(result);
+    }
+
+    private Long requireTenant() {
+        Long tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) {
+            throw new IllegalStateException("Tenant context not set.");
+        }
+        return tenantId;
+    }
+
+    private int capMaxDepth(int maxDepth) {
+        if (maxDepth < 1) maxDepth = 1;
+        if (maxDepth > 10) maxDepth = 10;
+        return maxDepth;
     }
 }
