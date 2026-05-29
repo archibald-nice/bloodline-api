@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS lineage_snapshot (
     ref_id          VARCHAR(64) COMMENT '关联引用（如Git commit hash）',
     edge_count      INT NOT NULL DEFAULT 0,
     node_count      INT NOT NULL DEFAULT 0,
+    edges_data      JSON COMMENT 'MVP: snapshot serialized edge data [{sourceId,targetId,relationType}]',
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_by      VARCHAR(64),
     INDEX idx_tenant_type (tenant_id, snapshot_type),
