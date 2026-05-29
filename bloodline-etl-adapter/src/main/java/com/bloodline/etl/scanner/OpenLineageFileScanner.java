@@ -2,6 +2,8 @@ package com.bloodline.etl.scanner;
 
 import com.bloodline.etl.parser.OpenLineageEventParser;
 import com.bloodline.etl.service.LineageIngestionService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -12,6 +14,8 @@ import java.nio.file.*;
 
 @Component
 public class OpenLineageFileScanner {
+
+    private static final Logger log = LoggerFactory.getLogger(OpenLineageFileScanner.class);
 
     private final OpenLineageEventParser parser;
     private final LineageIngestionService ingestionService;
@@ -27,13 +31,16 @@ public class OpenLineageFileScanner {
     }
 
     @Scheduled(fixedDelay = 30000)
-    public void scan() {
+    public synchronized void scan() {
         File dir = new File(scanPath);
         if (!dir.exists() || !dir.isDirectory()) {
             return;
         }
 
-        File[] files = dir.listFiles((d, name) -> name.endsWith(".json"));
+        File[] files = dir.listFiles((d, name) -> {
+            File f = new File(d, name);
+            return f.isFile() && name.toLowerCase().endsWith(".json");
+        });
         if (files == null) return;
 
         for (File file : files) {
@@ -45,7 +52,7 @@ public class OpenLineageFileScanner {
                 }
                 Files.move(file.toPath(), archiveDir.resolve(file.getName()), StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
-                System.err.println("Failed to process " + file.getName() + ": " + e.getMessage());
+                log.error("Failed to process {}", file.getName(), e);
             }
         }
     }

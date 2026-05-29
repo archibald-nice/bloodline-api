@@ -32,12 +32,19 @@ public class OpenLineageEventParser {
         event.setJobNamespace(root.path("job").path("namespace").asText());
         event.setInputs(parseInputs(root.path("inputs")));
         event.setOutputs(parseOutputs(root.path("outputs")));
+
+        if (event.getRunId() == null || event.getRunId().isEmpty()
+            || event.getJobName() == null || event.getJobName().isEmpty()
+            || event.getJobNamespace() == null || event.getJobNamespace().isEmpty()) {
+            throw new IllegalArgumentException("Missing required fields: runId, job.name, or job.namespace");
+        }
+
         return event;
     }
 
     private List<LineageEvent.DatasetInput> parseInputs(JsonNode inputsNode) {
         List<LineageEvent.DatasetInput> inputs = new ArrayList<>();
-        if (inputsNode.isArray()) {
+        if (inputsNode != null && inputsNode.isArray()) {
             for (JsonNode node : inputsNode) {
                 LineageEvent.DatasetInput input = new LineageEvent.DatasetInput();
                 input.setNamespace(node.path("namespace").asText());
@@ -50,7 +57,7 @@ public class OpenLineageEventParser {
 
     private List<LineageEvent.DatasetOutput> parseOutputs(JsonNode outputsNode) {
         List<LineageEvent.DatasetOutput> outputs = new ArrayList<>();
-        if (outputsNode.isArray()) {
+        if (outputsNode != null && outputsNode.isArray()) {
             for (JsonNode node : outputsNode) {
                 LineageEvent.DatasetOutput output = new LineageEvent.DatasetOutput();
                 output.setNamespace(node.path("namespace").asText());

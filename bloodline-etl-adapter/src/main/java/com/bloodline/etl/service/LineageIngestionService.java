@@ -26,7 +26,7 @@ public class LineageIngestionService {
     public void ingest(LineageEvent event) {
         Long tenantId = TenantContext.getCurrentTenant();
         if (tenantId == null) {
-            tenantId = 1L;
+            throw new IllegalStateException("Tenant context not set. Cannot ingest lineage event.");
         }
 
         String jobNodeId = event.getJobNamespace() + ":" + event.getJobName();
@@ -59,6 +59,9 @@ public class LineageIngestionService {
     }
 
     private void insertEdge(Long tenantId, String sourceId, String sourceType, String targetId, String targetType, String relationType) {
+        if (edgeExists(tenantId, sourceId, targetId, relationType)) {
+            return;
+        }
         LineageEdgeV2 edge = new LineageEdgeV2();
         edge.setTenantId(tenantId);
         edge.setSourceId(sourceId);
@@ -68,5 +71,18 @@ public class LineageIngestionService {
         edge.setRelationType(relationType);
         edge.setVersion(1);
         edgeMapper.insert(edge);
+    }
+
+    private boolean edgeExists(Long tenantId, String sourceId, String targetId, String relationType) {
+        List<LineageEdgeV2> existing = edgeMapper.findBySource(tenantId, sourceId);
+        if (existing != null) {
+            for (LineageEdgeV2 edge : existing) {
+                if (targetId.equals(edge.getTargetId()) && relationType.equals(edge.getRelationType())
+                    && Integer.valueOf(0).equals(edge.getIsDeleted())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
