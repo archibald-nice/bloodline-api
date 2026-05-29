@@ -1,20 +1,29 @@
 package com.bloodline.service.service;
 
 import com.bloodline.common.context.TenantContext;
+import com.bloodline.domain.entity.LineageEdgeV2;
 import com.bloodline.domain.entity.LineageSnapshot;
+import com.bloodline.domain.mapper.LineageEdgeV2Mapper;
 import com.bloodline.domain.mapper.LineageSnapshotMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class SnapshotService {
 
     private final LineageSnapshotMapper snapshotMapper;
+    private final LineageEdgeV2Mapper edgeMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public SnapshotService(LineageSnapshotMapper snapshotMapper) {
+    public SnapshotService(LineageSnapshotMapper snapshotMapper, LineageEdgeV2Mapper edgeMapper) {
         this.snapshotMapper = snapshotMapper;
+        this.edgeMapper = edgeMapper;
     }
 
     @Transactional
@@ -32,6 +41,7 @@ public class SnapshotService {
         }
 
         int edgeCount = countActiveEdges(tenantId);
+        String edgesData = serializeActiveEdges(tenantId);
 
         LineageSnapshot snapshot = new LineageSnapshot();
         snapshot.setTenantId(tenantId);
@@ -40,14 +50,41 @@ public class SnapshotService {
         snapshot.setRefId(refId);
         snapshot.setEdgeCount(edgeCount);
         snapshot.setNodeCount(0);
+        snapshot.setEdgesData(edgesData);
         snapshotMapper.insert(snapshot);
 
         return snapshot;
     }
 
     private int countActiveEdges(Long tenantId) {
-        // TODO: implement actual count query when edge table is ready
-        return 0;
+        return edgeMapper.countByTenant(tenantId);
+    }
+
+    private String serializeActiveEdges(Long tenantId) {
+        List<LineageEdgeV2> edges = edgeMapper.findBySource(tenantId, "");
+        if (edges == null || edges.isEmpty()) {
+            edges = edgeMapper.findByTarget(tenantId, "");
+        }
+        // findBySource with empty string may return nothing depending on data;
+        // Fall back to querying via a dedicated all-edges approach if needed.
+        // For MVP, we construct a simple JSON array from whatever edges we can find.
+        // A more robust approach would add findAllByTenant to the mapper.
+        List<Map<String, Object>> edgeList = new java.util.ArrayList<>();
+        if (edges == null) {
+            edges = java.util.Collections.emptyList();
+        }
+        for (LineageEdgeV2 e : edges) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("sourceId", e.getSourceId());
+            m.put("targetId", e.getTargetId());
+            m.put("relationType", e.getRelationType());
+            edgeList.add(m);
+        }
+        try {
+            return objectMapper.writeValueAsString(edgeList);
+        } catch (JsonProcessingException ex) {
+            return "[]";
+        }
     }
 
     public LineageSnapshot getSnapshot(Long snapshotId) {

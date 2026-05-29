@@ -87,4 +87,8 @@
     <update id="updateVersion">
         UPDATE lineage_edge_v2 SET version = #{version} WHERE id = #{id}
     </update>
+
+    <select id="countByTenant" resultType="int">
+        SELECT COUNT(*) FROM lineage_edge_v2 WHERE tenant_id = #{tenantId} AND is_deleted = 0
+    </select>
 </mapper>
