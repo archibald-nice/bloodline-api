@@ -18,6 +18,10 @@ The system stores extracted relationships as `lineage_edge` records (service/tab
 and `lineage_column_ref` records (field level), enabling upstream/downstream impact analysis
 at multiple granularities.
 
+**V2 Architecture** introduces a generic node-level lineage graph model (`lineage_node` + `lineage_edge_v2`)
+with multi-tenancy, versioning, snapshot management, and conflict analysis. It also includes an
+OpenLineage-compatible ETL adapter for ingesting lineage events from data pipelines.
+
 ## Features
 
 - **5 Parsers** — Dubbo, Feign, RestController, MyBatis, JPA Entity
@@ -28,8 +32,13 @@ at multiple granularities.
 - **Lineage queries** — Upstream/downstream graph traversal with recursive expansion
 - **Field-level graph** — `GET /api/v1/lineage/apps/{appId}/fields` for column-level lineage
 - **Branch awareness** — Edges scoped by branch and project, enabling parallel development tracking
-- **Multi-tenant** — Tenant isolation at the data layer (ready for extension)
-- **42 unit tests** — Full coverage of parsers, service layer, and GitHub integration
+- **V2 generic node-level graph** — TABLE/JOB/FIELD/API nodes with recursive CTE upstream/downstream queries
+- **Multi-tenancy** — ThreadLocal tenant context with MVC interceptor, data-layer isolation
+- **Snapshot management** — Create, list, and compare lineage snapshots with serialized edge data
+- **Conflict analysis** — Detect ADDED/REMOVED edges between snapshots with severity grading
+- **OpenLineage ETL adapter** — Ingest JSON RunEvents from data pipelines via filesystem scanning
+- **Soft-delete versioning** — Edge history tracking with version numbers
+- **41+ unit tests** — Full coverage of parsers, service layer, V2 controllers, and GitHub integration
 
 ## Tech Stack
 
@@ -58,6 +67,9 @@ bloodline-analyzer -- static code parsers (JavaParser, JSqlParser)
        |
        ▼
 bloodline-service  -- Spring Boot web app, REST controllers, async jobs
+       |
+       ▼
+bloodline-etl-adapter -- OpenLineage event parser, file scanner, ingestion service
 ```
 
 ### Key Components
@@ -78,6 +90,13 @@ bloodline-service  -- Spring Boot web app, REST controllers, async jobs
 | `LineageColumnRefService` | Column ref queries — by app, column, or SQL signature |
 | `ImpactAnalysisService` | Core impact analysis — affected apps and cross-field relations |
 | `AnalysisJobExecutor` | `@Scheduled` executor polling pending tasks every 30s |
+| `TenantInterceptor` | Spring MVC interceptor extracting `X-Tenant-ID` header into ThreadLocal context |
+| `LineageV2Controller` | V2 REST endpoints — recursive upstream/downstream with CTE queries |
+| `SnapshotService` | Create snapshots with serialized edge data, list by tenant |
+| `ConflictAnalyzer` | Compare two snapshots, report ADDED/REMOVED edges with severity |
+| `OpenLineageEventParser` | Parse OpenLineage RunEvent JSON into internal `LineageEvent` DTO |
+| `OpenLineageFileScanner` | `@Scheduled` filesystem scanner for `.json` lineage events |
+| `LineageIngestionService` | Orchestrate OpenLineage ingestion — parse, convert nodes/edges, persist |
 
 ## Quick Start
 
@@ -95,8 +114,12 @@ mysql -u root -p
 
 ```sql
 CREATE DATABASE bloodline CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
--- Run schema.sql to create tables
+-- Run schema.sql to create V1 tables
 source bloodline-service/src/main/resources/db/schema.sql
+-- Run V2 schema changes
+source bloodline-service/src/main/resources/db/schema-v2-changes.sql
+-- (Optional) Migrate existing V1 data to V2 model
+source bloodline-service/src/main/resources/db/migration-v1-to-v2.sql
 ```
 
 ### 2. Configure Database
@@ -169,17 +192,37 @@ mvn test
 | `/api/v1/analysis/batch` | POST | Batch analysis for multiple apps |
 | `/api/v1/github/webhook` | POST | GitHub push webhook |
 
+### V2 Lineage (Node-Centric)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v2/tenants` | GET, POST | List / create tenants |
+| `/api/v2/lineage/nodes/{nodeId}/upstream` | GET | Recursive upstream with `maxDepth` |
+| `/api/v2/lineage/nodes/{nodeId}/downstream` | GET | Recursive downstream with `maxDepth` |
+| `/api/v2/lineage/graph` | GET | Full upstream + downstream for a node |
+| `/api/v2/lineage/snapshots` | GET, POST | List / create lineage snapshots |
+| `/api/v2/lineage/snapshots/{id}` | GET | Get snapshot detail |
+| `/api/v2/lineage/conflict/analyze` | POST | Compare two snapshots, report conflicts |
+
 ## Data Model
 
-Five core tables:
+Five V1 core tables + five V2 tables:
 
+**V1 Tables:**
 - **`application`** — Registered microservices with `git_url`
 - **`project`** — Development projects with branch tracking
 - **`analysis_task`** — Async analysis job status
 - **`lineage_edge`** — Service/table-level lineage relationships
 - **`lineage_column_ref`** — Field-level SQL column references
 
-See `bloodline-service/src/main/resources/db/schema.sql` for full DDL.
+**V2 Tables:**
+- **`tenant`** — Multi-tenant isolation
+- **`lineage_node`** — Generic nodes (TABLE/JOB/FIELD/API)
+- **`lineage_edge_v2`** — Node-level lineage with soft-delete versioning
+- **`lineage_edge_history`** — Edge version history
+- **`lineage_snapshot`** — Snapshot metadata with serialized edge data
+
+See `bloodline-service/src/main/resources/db/schema.sql` (V1) and `schema-v2-changes.sql` (V2) for full DDL.
 
 ### lineage_column_ref
 
@@ -251,7 +294,8 @@ Test coverage:
 | Module | Tests | Focus |
 |--------|-------|-------|
 | bloodline-analyzer | 42 | Parser correctness, column extraction, alias resolution |
-| bloodline-service | 30 | Service layer, task lifecycle, impact analysis, GitHub integration |
+| bloodline-etl-adapter | 2 | OpenLineage JSON parsing |
+| bloodline-service | 41 | Service layer, V2 controllers, snapshot/conflict, task lifecycle, impact analysis, GitHub integration |
 
 ## License
 

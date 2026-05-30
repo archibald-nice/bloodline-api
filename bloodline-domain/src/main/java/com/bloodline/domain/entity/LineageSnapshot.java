@@ -10,6 +10,7 @@ public class LineageSnapshot {
     private String refId;
     private Integer edgeCount;
     private Integer nodeCount;
+    private String edgesData;
     private LocalDateTime createdAt;
     private String createdBy;
 
@@ -28,6 +29,8 @@ public class LineageSnapshot {
     public void setEdgeCount(Integer edgeCount) { this.edgeCount = edgeCount; }
     public Integer getNodeCount() { return nodeCount; }
     public void setNodeCount(Integer nodeCount) { this.nodeCount = nodeCount; }
+    public String getEdgesData() { return edgesData; }
+    public void setEdgesData(String edgesData) { this.edgesData = edgesData; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public String getCreatedBy() { return createdBy; }

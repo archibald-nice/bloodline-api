@@ -2,6 +2,7 @@ package com.bloodline.service.service;
 
 import com.bloodline.common.context.TenantContext;
 import com.bloodline.domain.entity.LineageSnapshot;
+import com.bloodline.domain.mapper.LineageEdgeV2Mapper;
 import com.bloodline.domain.mapper.LineageSnapshotMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,6 +11,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -20,12 +23,15 @@ class SnapshotServiceTest {
     @Mock
     private LineageSnapshotMapper snapshotMapper;
 
+    @Mock
+    private LineageEdgeV2Mapper edgeMapper;
+
     private SnapshotService snapshotService;
 
     @BeforeEach
     void setUp() {
         TenantContext.setCurrentTenant(1L);
-        snapshotService = new SnapshotService(snapshotMapper);
+        snapshotService = new SnapshotService(snapshotMapper, edgeMapper);
     }
 
     @AfterEach

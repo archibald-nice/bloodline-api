@@ -10,6 +10,7 @@
         <result property="refId" column="ref_id"/>
         <result property="edgeCount" column="edge_count"/>
         <result property="nodeCount" column="node_count"/>
+        <result property="edgesData" column="edges_data"/>
         <result property="createdAt" column="created_at"/>
         <result property="createdBy" column="created_by"/>
     </resultMap>
@@ -29,8 +30,8 @@
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO lineage_snapshot (tenant_id, snapshot_name, snapshot_type, ref_id, edge_count, node_count, created_by)
-        VALUES (#{tenantId}, #{snapshotName}, #{snapshotType}, #{refId}, #{edgeCount}, #{nodeCount}, #{createdBy})
+        INSERT INTO lineage_snapshot (tenant_id, snapshot_name, snapshot_type, ref_id, edge_count, node_count, edges_data, created_by)
+        VALUES (#{tenantId}, #{snapshotName}, #{snapshotType}, #{refId}, #{edgeCount}, #{nodeCount}, #{edgesData}, #{createdBy})
     </insert>
 
     <update id="updateCounts">

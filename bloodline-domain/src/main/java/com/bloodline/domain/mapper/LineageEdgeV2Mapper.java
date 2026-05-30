@@ -16,4 +16,5 @@ public interface LineageEdgeV2Mapper {
     int softDeleteById(@Param("id") Long id);
     int softDeleteBySourceTarget(@Param("tenantId") Long tenantId, @Param("sourceId") String sourceId, @Param("targetId") String targetId);
     int updateVersion(@Param("id") Long id, @Param("version") int version);
+    int countByTenant(@Param("tenantId") Long tenantId);
 }

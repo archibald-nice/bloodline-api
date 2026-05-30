@@ -5,6 +5,7 @@ import com.bloodline.domain.mapper.ApplicationMapper;
 import com.bloodline.service.service.AnalysisTaskService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,14 +20,18 @@ public class GitHubWebhookController {
 
     private final AnalysisTaskService analysisTaskService;
     private final ApplicationMapper applicationMapper;
+    private final boolean immediateTriggerEnabled;
 
-    public GitHubWebhookController(AnalysisTaskService analysisTaskService, ApplicationMapper applicationMapper) {
+    public GitHubWebhookController(AnalysisTaskService analysisTaskService,
+                                   ApplicationMapper applicationMapper,
+                                   @Value("${analysis.immediate-trigger:false}") boolean immediateTriggerEnabled) {
         this.analysisTaskService = analysisTaskService;
         this.applicationMapper = applicationMapper;
+        this.immediateTriggerEnabled = immediateTriggerEnabled;
     }
 
     @PostMapping("/webhook")
-    public ResponseEntity<Map<String, Long>> receiveWebhook(
+    public ResponseEntity<Map<String, Object>> receiveWebhook(
             @RequestHeader("X-GitHub-Event") String eventType,
             @RequestHeader(value = "X-Hub-Signature-256", required = false) String signature,
             @RequestBody Map<String, Object> payload) {
@@ -59,7 +64,16 @@ public class GitHubWebhookController {
                 "dept_01", null, app.getAppId(), branch, commitSha, 1
         );
 
-        return ResponseEntity.ok(Collections.singletonMap("taskId", taskId));
+        boolean triggered = false;
+        if (immediateTriggerEnabled) {
+            triggered = analysisTaskService.executeAsync(taskId);
+        }
+
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("taskId", taskId);
+        result.put("immediateTrigger", immediateTriggerEnabled);
+        result.put("triggered", triggered);
+        return ResponseEntity.ok(result);
     }
 
     private String extractBranchName(String ref) {
