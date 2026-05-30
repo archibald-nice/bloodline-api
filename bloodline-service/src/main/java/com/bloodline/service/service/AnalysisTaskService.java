@@ -4,6 +4,7 @@ import com.bloodline.domain.entity.AnalysisTask;
 import com.bloodline.domain.entity.Application;
 import com.bloodline.domain.mapper.AnalysisTaskMapper;
 import com.bloodline.domain.mapper.ApplicationMapper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -119,5 +120,28 @@ public class AnalysisTaskService {
 
     public List<AnalysisTask> listTasks(String tenantId, Integer limit) {
         return analysisTaskMapper.findByTenant(tenantId, limit);
+    }
+
+    /**
+     * Execute task asynchronously (immediate trigger).
+     * Returns true if execution was submitted, false if task not found or already processed.
+     */
+    @Async("analysisTaskExecutor")
+    public boolean executeAsync(Long taskId) {
+        AnalysisTask task = analysisTaskMapper.findById(taskId);
+        if (task == null || task.getStatus() != 0) {
+            return false;
+        }
+        try {
+            executeTask(taskId);
+            return true;
+        } catch (Exception e) {
+            AnalysisTask failedTask = new AnalysisTask();
+            failedTask.setId(taskId);
+            failedTask.setStatus(3);
+            failedTask.setErrorMsg("Immediate execution failed: " + e.getMessage());
+            analysisTaskMapper.updateStatus(failedTask);
+            return false;
+        }
     }
 }

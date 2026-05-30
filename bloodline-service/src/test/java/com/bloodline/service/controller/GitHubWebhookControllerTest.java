@@ -31,7 +31,7 @@ class GitHubWebhookControllerTest {
 
     @BeforeEach
     void setUp() {
-        GitHubWebhookController controller = new GitHubWebhookController(analysisTaskService, applicationMapper);
+        GitHubWebhookController controller = new GitHubWebhookController(analysisTaskService, applicationMapper, false);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 

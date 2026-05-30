@@ -29,6 +29,9 @@ mybatis:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.bloodline.domain.entity
 
+analysis:
+  immediate-trigger: true
+
 logging:
   level:
     com.bloodline.domain.mapper: debug

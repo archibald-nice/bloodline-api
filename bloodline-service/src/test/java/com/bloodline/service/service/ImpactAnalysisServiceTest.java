@@ -117,6 +117,65 @@ class ImpactAnalysisServiceTest {
         assertThat(report.getCrossFieldRelations()).isEmpty();
     }
 
+    @Test
+    void testRiskLevel_HIGH_whenManyAppsAffected() {
+        // 3 apps affected + 10+ related fields = HIGH
+        LineageColumnRef ref1 = createRef("app1", "orders", "amount", "sql-001", "SELECT amount FROM orders", "SELECT", "READ");
+        LineageColumnRef ref2 = createRef("app2", "orders", "amount", "sql-001", "SELECT amount FROM orders", "SELECT", "READ");
+        LineageColumnRef ref3 = createRef("app3", "orders", "amount", "sql-001", "SELECT amount FROM orders", "SELECT", "READ");
+        LineageColumnRef ref4 = createRef("app4", "orders", "amount", "sql-001", "SELECT amount FROM orders", "SELECT", "READ");
+
+        when(columnRefMapper.findByColumn("orders", "amount"))
+                .thenReturn(Arrays.asList(ref1, ref2, ref3, ref4));
+        when(columnRefMapper.findBySqlSignature("sql-001"))
+                .thenReturn(Arrays.asList(ref1, ref2, ref3, ref4));
+
+        ImpactAnalysisService.ImpactRequest request = new ImpactAnalysisService.ImpactRequest(
+                Collections.singletonList(new ImpactAnalysisService.ChangeItem("app1", "orders", "amount", "MODIFY"))
+        );
+
+        ImpactAnalysisService.ImpactReport report = impactAnalysisService.analyze(request);
+        assertThat(report.getSummary().getRiskLevel()).isEqualTo("HIGH");
+        assertThat(report.getSummary().getRiskReason()).contains("4");
+    }
+
+    @Test
+    void testRiskLevel_MEDIUM_whenCrossApp() {
+        // 2 apps affected = MEDIUM
+        LineageColumnRef ref1 = createRef("app1", "orders", "amount", "sql-001", "SELECT amount FROM orders", "SELECT", "READ");
+        LineageColumnRef ref2 = createRef("app2", "orders", "amount", "sql-001", "SELECT amount FROM orders", "SELECT", "READ");
+
+        when(columnRefMapper.findByColumn("orders", "amount"))
+                .thenReturn(Arrays.asList(ref1, ref2));
+        when(columnRefMapper.findBySqlSignature("sql-001"))
+                .thenReturn(Arrays.asList(ref1, ref2));
+
+        ImpactAnalysisService.ImpactRequest request = new ImpactAnalysisService.ImpactRequest(
+                Collections.singletonList(new ImpactAnalysisService.ChangeItem("app1", "orders", "amount", "MODIFY"))
+        );
+
+        ImpactAnalysisService.ImpactReport report = impactAnalysisService.analyze(request);
+        assertThat(report.getSummary().getRiskLevel()).isEqualTo("MEDIUM");
+    }
+
+    @Test
+    void testRiskLevel_LOW_whenSingleApp() {
+        // 1 app affected = LOW
+        LineageColumnRef ref1 = createRef("app1", "orders", "amount", "sql-001", "SELECT amount FROM orders", "SELECT", "READ");
+
+        when(columnRefMapper.findByColumn("orders", "amount"))
+                .thenReturn(Collections.singletonList(ref1));
+        when(columnRefMapper.findBySqlSignature("sql-001"))
+                .thenReturn(Collections.singletonList(ref1));
+
+        ImpactAnalysisService.ImpactRequest request = new ImpactAnalysisService.ImpactRequest(
+                Collections.singletonList(new ImpactAnalysisService.ChangeItem("app1", "orders", "amount", "MODIFY"))
+        );
+
+        ImpactAnalysisService.ImpactReport report = impactAnalysisService.analyze(request);
+        assertThat(report.getSummary().getRiskLevel()).isEqualTo("LOW");
+    }
+
     private LineageColumnRef createRef(String appId, String tableName, String columnName,
                                        String sqlSignature, String sqlPreview,
                                        String operationType, String operationDetail) {

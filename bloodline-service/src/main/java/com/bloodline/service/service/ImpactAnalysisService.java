@@ -155,11 +155,35 @@ public class ImpactAnalysisService {
                 allSqlSignatures.size()
         );
 
+        // Step 5: Risk assessment
+        RiskAssessment risk = assessRisk(allAffectedAppIds.size(), request.getChanges().size(), allRelatedFields.size());
+        summary.setRiskLevel(risk.level);
+        summary.setRiskReason(risk.reason);
+
         report.setSummary(summary);
         report.setAppsAffected(appsAffected);
         report.setCrossFieldRelations(crossFieldRelations);
 
         return report;
+    }
+
+    private RiskAssessment assessRisk(int appCount, int changeCount, int relatedFieldCount) {
+        if (appCount >= 3 || relatedFieldCount >= 10) {
+            return new RiskAssessment("HIGH", "Impact spans " + appCount + " applications with " + relatedFieldCount + " related fields");
+        }
+        if (appCount >= 2 || changeCount >= 2) {
+            return new RiskAssessment("MEDIUM", "Cross-application or multi-field impact detected");
+        }
+        return new RiskAssessment("LOW", "Limited to single application with few dependencies");
+    }
+
+    private static class RiskAssessment {
+        final String level;
+        final String reason;
+        RiskAssessment(String level, String reason) {
+            this.level = level;
+            this.reason = reason;
+        }
     }
 
     // ==================== DTOs ====================
@@ -266,6 +290,8 @@ public class ImpactAnalysisService {
         private int totalAppsAffected;
         private int totalFieldsRelated;
         private int totalSqlsInvolved;
+        private String riskLevel;
+        private String riskReason;
 
         public Summary() {
         }
@@ -299,6 +325,11 @@ public class ImpactAnalysisService {
         public void setTotalSqlsInvolved(int totalSqlsInvolved) {
             this.totalSqlsInvolved = totalSqlsInvolved;
         }
+
+        public String getRiskLevel() { return riskLevel; }
+        public void setRiskLevel(String riskLevel) { this.riskLevel = riskLevel; }
+        public String getRiskReason() { return riskReason; }
+        public void setRiskReason(String riskReason) { this.riskReason = riskReason; }
     }
 
     public static class AppImpact {
